@@ -235,6 +235,26 @@ document.addEventListener("keydown", function (ev) {
   enterSwarmos();
 });
 
+// ------------------------------------------------------------------- layout
+
+// The ROBONEX composition is a fixed 1440 x 800 stage scaled to the viewport,
+// with a 520 px minimum height. landing.css reads --lp-scale for the stage
+// transform and the background grid pitch.
+const STAGE_W = 1440;
+const STAGE_H = 800;
+const STAGE_MIN_H = 520;
+
+function fitStage() {
+  const s = Math.min(
+    window.innerWidth / STAGE_W,
+    Math.max(window.innerHeight, STAGE_MIN_H) / STAGE_H
+  );
+  els.body.style.setProperty("--lp-scale", String(s));
+}
+
+fitStage();
+window.addEventListener("resize", fitStage);
+
 pollStatus();
 window.setInterval(pollStatus, STATUS_POLL_MS);
 
