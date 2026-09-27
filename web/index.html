@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SWARMOS -- Distributed Fleet Coordination</title>
+<!-- Inline data-URI icon. Without a rel=icon the browser probes /favicon.ico
+     and logs a 404 on every load, which buries real errors in the console. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2312161C'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%233B9EFF' stroke-width='3'/%3E%3C/svg%3E" />
+
+<meta name="description" content="Edge-AI based distributed fleet coordination for autonomous mobile robots in smart warehouses." />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/shell.css" />
+<link rel="stylesheet" href="styles/panels.css" />
+</head>
+<body>
+
+<!-- Degradation is announced inline and names cause AND consequence. It is not
+     a toast: an operator who looked away must still be able to read it. -->
+<div class="banner" id="banner" role="status" aria-live="polite" data-visible="false" data-tone="warn">
+  <span class="banner__cause" id="banner-cause"></span>
+  <span class="banner__action" id="banner-action"></span>
+  <span class="strip__spacer"></span>
+  <button class="btn btn--icon" id="banner-dismiss" aria-label="Dismiss notice">x</button>
+</div>
+
+<div class="shell" id="shell" data-rail="closed">
+
+  <!-- ========================================================== topbar -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand__glyph" viewBox="0 0 24 24" fill="none"
+           aria-hidden="true" focusable="false">
+        <path d="M5 13 L12 9 L19 13 L12 17 Z" stroke="currentColor"
+              stroke-width="1.5"/>
+        <circle cx="12" cy="5.5" r="1.75" stroke="currentColor"
+                stroke-width="1.5"/>
+        <path d="M12 7.25 L12 9" stroke="currentColor" stroke-width="1.5"/>
+      </svg>
+      <span class="brand__mark">SWARMOS</span>
+      <span class="brand__sub">Fleet Coordination</span>
+    </div>
+
+    <button class="btn" id="btn-palette" aria-haspopup="dialog">
+      Commands <span class="kbd">Ctrl K</span>
+    </button>
+
+    <!-- Only rendered below 1280px, where the rail becomes an overlay drawer. -->
+    <button class="btn rail-toggle" id="btn-rail-toggle" aria-controls="rail" aria-expanded="false">
+      Panels
+    </button>
+
+    <span class="topbar__spacer"></span>
+
+    <div class="status-cluster">
+      <div class="status-item">
+        <span class="status-item__label">Link</span>
+        <span class="status-item__value">
+          <span class="link-dot" id="link-dot" data-link="down"></span>
+          <span id="link-text">Offline</span>
+        </span>
+      </div>
+      <div class="status-item">
+        <span class="status-item__label">Scenario</span>
+        <span class="status-item__value" id="hdr-scenario">--</span>
+      </div>
+      <div class="status-item">
+        <span class="status-item__label">Seed</span>
+        <span class="status-item__value num" id="hdr-seed">--</span>
+      </div>
+      <div class="status-item">
+        <span class="status-item__label">Tick</span>
+        <span class="status-item__value num" id="hdr-tick">0</span>
+      </div>
+      <div class="status-item">
+        <span class="status-item__label">Sim clock</span>
+        <span class="status-item__value num" id="hdr-clock">0.0s</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================= map -->
+  <main class="map" id="map" aria-label="Live warehouse map">
+    <!-- Four stacked canvases. The static layer is painted once per viewport
+         change; only the robot layer repaints per frame. -->
+    <canvas class="map__layer map__layer--static" id="layer-static"></canvas>
+    <canvas class="map__layer map__layer--paths"  id="layer-paths"></canvas>
+    <canvas class="map__layer map__layer--robots" id="layer-robots"></canvas>
+    <canvas class="map__layer map__layer--hit"    id="layer-hit" tabindex="0"
+            aria-label="Map interaction surface. Arrow keys pan, plus and minus zoom."></canvas>
+
+    <div class="map__overlay map__overlay--tl">
+      <div class="legend" id="legend" aria-label="State legend"></div>
+    </div>
+
+    <div class="map__overlay map__overlay--tr">
+      <div class="mapctl">
+        <button class="btn btn--icon" id="btn-zoom-in"  aria-label="Zoom in">+</button>
+        <button class="btn btn--icon" id="btn-zoom-out" aria-label="Zoom out">-</button>
+        <button class="btn btn--icon" id="btn-zoom-fit" aria-label="Fit to view">Fit</button>
+      </div>
+    </div>
+
+    <div class="map__overlay map__overlay--bl">
+      <div class="mapinfo">
+        <span class="mapinfo__item"><span class="kv__k">Zoom</span> <span class="num" id="info-zoom">1.00x</span></span>
+        <span class="mapinfo__item"><span class="kv__k">Cursor</span> <span class="num" id="info-cursor">--</span></span>
+        <span class="mapinfo__item"><span class="kv__k">Render</span> <span class="num" id="info-fps">-- fps</span></span>
+      </div>
+    </div>
+
+    <!-- Shown until the first state frame arrives. Names cause and action. -->
+    <div class="map__placeholder" id="map-placeholder">
+      <div class="empty hero">
+        <svg class="hero__art" viewBox="0 0 192 192" fill="none"
+             aria-hidden="true" focusable="false">
+          <!-- Warehouse floor grid. Deliberately an AMR mobile base, not a
+               humanoid: it is what the simulation actually models. -->
+          <g stroke="currentColor" stroke-width="0.5" opacity="0.18">
+            <path d="M12 36h168M12 72h168M12 108h168M12 144h168"/>
+            <path d="M36 12v168M72 12v168M108 12v168M144 12v168"/>
+          </g>
+          <!-- Comm range, R_comm = 15 m -->
+          <circle cx="96" cy="96" r="78" stroke="currentColor"
+                  stroke-width="0.75" stroke-dasharray="3 6" opacity="0.4"/>
+          <g class="hero__sweep" opacity="0.55">
+            <path d="M96 96 L96 18" stroke="var(--state-sovereign)"
+                  stroke-width="1"/>
+            <path d="M96 18 A78 78 0 0 1 151 41" stroke="var(--state-sovereign)"
+                  stroke-width="1.5" fill="none"/>
+          </g>
+          <!-- Load deck -->
+          <path d="M54 92 L96 72 L138 92 L96 112 Z" stroke="currentColor"
+                stroke-width="1.25" opacity="0.85"/>
+          <path d="M54 92 L54 104 L96 124 L138 104 L138 92" stroke="currentColor"
+                stroke-width="1.25" opacity="0.6"/>
+          <path d="M96 112 L96 124" stroke="currentColor" stroke-width="1"
+                opacity="0.6"/>
+          <!-- Payload tote -->
+          <path d="M74 82 L96 71 L118 82 L96 93 Z" stroke="currentColor"
+                stroke-width="1" opacity="0.5"/>
+          <!-- Lidar puck, drawn in SOVEREIGN teal: the one saturated accent -->
+          <circle cx="96" cy="66" r="4.5" stroke="var(--state-sovereign)"
+                  stroke-width="1.25"/>
+          <circle cx="96" cy="66" r="1.5" fill="var(--state-sovereign)"
+                  opacity="0.8"/>
+          <!-- Wheels -->
+          <path d="M62 106 L62 114M130 106 L130 114" stroke="currentColor"
+                stroke-width="2" opacity="0.7"/>
+          <!-- Peer robots, at the 4 px LOD dot size the map uses when zoomed out -->
+          <circle cx="30" cy="150" r="2" fill="currentColor" opacity="0.55"/>
+          <circle cx="160" cy="140" r="2" fill="currentColor" opacity="0.55"/>
+          <circle cx="150" cy="160" r="2" fill="currentColor" opacity="0.4"/>
+          <circle cx="40" cy="36" r="2" fill="currentColor" opacity="0.4"/>
+        </svg>
+        <div class="hero__copy">
+        <div class="empty__cause">No run has been started yet.</div>
+        <div class="empty__action">Start the reference scenario below, or open the Lab tab to configure your own.</div>
+        <div class="empty__cta">
+          <button class="btn btn--primary" id="btn-start-demo">Start demo run</button>
+        </div>
+        <div class="empty__hint">rush_50 &middot; seed 11 &middot; fleet 8</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================ rail -->
+  <aside class="rail" id="rail" data-open="false">
+    <div class="rail__tabs" role="tablist" aria-label="Inspector panels">
+      <button class="rail__tab" role="tab" id="tab-fleet"     aria-selected="true"  aria-controls="panel-fleet">Fleet</button>
+      <button class="rail__tab" role="tab" id="tab-inspector" aria-selected="false" aria-controls="panel-inspector">Decision</button>
+      <button class="rail__tab" role="tab" id="tab-lab"       aria-selected="false" aria-controls="panel-lab">Lab</button>
+      <button class="rail__tab" role="tab" id="tab-cosim"     aria-selected="false" aria-controls="panel-cosim">Compare</button>
+      <button class="rail__tab" role="tab" id="tab-analytics" aria-selected="false" aria-controls="panel-analytics">Analytics</button>
+    </div>
+
+    <div class="rail__body">
+      <section class="panel" role="tabpanel" id="panel-fleet"     aria-labelledby="tab-fleet"     data-active="true"></section>
+      <section class="panel" role="tabpanel" id="panel-inspector" aria-labelledby="tab-inspector" data-active="false"></section>
+      <section class="panel" role="tabpanel" id="panel-lab"       aria-labelledby="tab-lab"       data-active="false"></section>
+      <section class="panel" role="tabpanel" id="panel-cosim"     aria-labelledby="tab-cosim"     data-active="false"></section>
+      <section class="panel" role="tabpanel" id="panel-analytics" aria-labelledby="tab-analytics" data-active="false"></section>
+    </div>
+  </aside>
+
+  <!-- =========================================================== strip -->
+  <footer class="strip" aria-label="Fleet telemetry">
+    <!-- Exactly ONE hero metric: throughput is the question the product answers. -->
+    <div class="metric metric--hero">
+      <span class="metric__label">Tasks per minute</span>
+      <span class="metric__value num" id="kpi-tasks-per-min">--<span class="metric__unit">/min</span></span>
+    </div>
+
+    <div class="strip__divider"></div>
+
+    <div class="metric">
+      <span class="metric__label">Completed</span>
+      <span class="metric__value num" id="kpi-tasks-complete">--</span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Collisions</span>
+      <span class="metric__value num" id="kpi-collisions">--</span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Tick budget p95</span>
+      <span class="metric__value num" id="kpi-p95">--<span class="metric__unit">ms</span></span>
+    </div>
+
+    <span class="strip__spacer"></span>
+
+    <div class="metric">
+      <span class="metric__label">Avg completion</span>
+      <span class="metric__value num" id="kpi-avg-completion">--<span class="metric__unit">s</span></span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Verdicts</span>
+      <span class="metric__value num" id="kpi-verdicts">--</span>
+    </div>
+    <div class="metric">
+      <span class="metric__label">Replans</span>
+      <span class="metric__value num" id="kpi-replans">--</span>
+    </div>
+  </footer>
+
+</div><!-- /.shell -->
+
+<!-- ================================================== command palette -->
+<div class="palette-scrim" id="palette-scrim" data-open="false">
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <input class="palette__input" id="palette-input" type="text" autocomplete="off"
+           spellcheck="false" placeholder="Type a command..." aria-controls="palette-list" />
+    <ul class="palette__list" id="palette-list" role="listbox"></ul>
+    <div class="palette__hint">
+      <span><span class="kbd">up</span><span class="kbd">down</span> navigate</span>
+      <span><span class="kbd">Enter</span> run</span>
+      <span><span class="kbd">Esc</span> close</span>
+    </div>
+  </div>
+</div>
+
+<!-- Module graph. No bundler, no build step: native ES modules only. -->
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

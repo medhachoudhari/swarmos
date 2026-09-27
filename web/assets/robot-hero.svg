@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 640" role="img"
+     aria-label="Autonomous mobile robot, front three-quarter view">
+  <title>ROBONEX autonomous mobile robot</title>
+  <defs>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"    stop-color="#2A333C"/>
+      <stop offset="0.42" stop-color="#3C4855"/>
+      <stop offset="0.68" stop-color="#232B33"/>
+      <stop offset="1"    stop-color="#151B21"/>
+    </linearGradient>
+    <linearGradient id="shellLit" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0"   stop-color="#4A5867"/>
+      <stop offset="0.5" stop-color="#333E49"/>
+      <stop offset="1"   stop-color="#1C232A"/>
+    </linearGradient>
+    <linearGradient id="visor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#0A0E12"/>
+      <stop offset="0.55" stop-color="#0D1620"/>
+      <stop offset="1"   stop-color="#060A0D"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="#4FB3A6" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#4FB3A6" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#4FB3A6" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="ground" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"   stop-color="#4FB3A6" stop-opacity="0.16"/>
+      <stop offset="0.6" stop-color="#3E9BFF" stop-opacity="0.05"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ambient" cx="0.5" cy="0.34" r="0.62">
+      <stop offset="0"   stop-color="#8FA6BC" stop-opacity="0.10"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Controlled ambient pool behind the figure: depth without glow. -->
+  <ellipse cx="260" cy="230" rx="240" ry="250" fill="url(#ambient)"/>
+  <!-- Contact shadow, so the robot sits ON the floor grid. -->
+  <ellipse cx="260" cy="596" rx="186" ry="30" fill="url(#ground)"/>
+  <ellipse cx="260" cy="598" rx="120" ry="15" fill="#05080A" opacity="0.66"/>
+
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <!-- torso -->
+    <path d="M148 300 Q154 258 196 246 L324 246 Q366 258 372 300
+             L382 436 Q384 470 356 486 L164 486 Q136 470 138 436 Z"
+          fill="url(#shell)" stroke="#48566380" stroke-width="1.6"/>
+    <!-- Chest plate: the one lit plane, which is what reads as metal. -->
+    <path d="M186 288 Q192 268 216 262 L304 262 Q328 268 334 288
+             L340 372 Q340 392 318 398 L202 398 Q180 392 180 372 Z"
+          fill="url(#shellLit)" stroke="#56667580" stroke-width="1.2"/>
+    <!-- Panel seams. Industrial, not decorative. -->
+    <path d="M206 300 L314 300 M200 330 L320 330 M206 360 L314 360"
+          stroke="#0E141A" stroke-width="1.5" opacity="0.62"/>
+    <path d="M260 262 L260 398" stroke="#0E141A" stroke-width="1.2" opacity="0.5"/>
+    <!-- Core status lamp: single accent, matches SOVEREIGN teal. -->
+    <circle cx="260" cy="424" r="15" fill="#0C1116" stroke="#4FB3A6" stroke-width="1.8"/>
+    <circle cx="260" cy="424" r="6"  fill="#4FB3A6" opacity="0.82"/>
+    <!-- Lower body / drive housing -->
+    <path d="M164 486 L356 486 L342 556 Q338 572 316 574 L204 574
+             Q182 572 178 556 Z"
+          fill="url(#shell)" stroke="#44515E80" stroke-width="1.5"/>
+    <path d="M206 506 L314 506 M214 530 L306 530"
+          stroke="#0B1015" stroke-width="1.4" opacity="0.55"/>
+
+    <!-- head -->
+    <path d="M214 130 Q214 96 260 96 Q306 96 306 130 L306 176
+             Q306 206 260 206 Q214 206 214 176 Z"
+          fill="url(#shellLit)" stroke="#5A6A7980" stroke-width="1.6"/>
+    <!-- Visor: dark, reflective, no neon. -->
+    <path d="M226 132 Q226 114 260 114 Q294 114 294 132 L294 162
+             Q294 180 260 180 Q226 180 226 162 Z"
+          fill="url(#visor)" stroke="#1E2A36" stroke-width="1.2"/>
+    <!-- Two sensor points: presence, not cartoon eyes. -->
+    <circle cx="242" cy="148" r="3.4" fill="#4FB3A6" opacity="0.88"/>
+    <circle cx="278" cy="148" r="3.4" fill="#4FB3A6" opacity="0.88"/>
+    <!-- Rim light along the crown -->
+    <path d="M222 118 Q260 100 298 118" stroke="url(#rim)" stroke-width="2.4" fill="none"/>
+    <!-- Neck -->
+    <path d="M238 206 L282 206 L288 246 L232 246 Z"
+          fill="#1B222A" stroke="#3B4754" stroke-width="1.2"/>
+
+    <!-- arms -->
+    <path d="M148 302 Q120 312 114 348 L108 430 Q106 456 126 462
+             Q146 466 152 442 L160 350 Z"
+          fill="url(#shell)" stroke="#424F5C80" stroke-width="1.4"/>
+    <path d="M372 302 Q400 312 406 348 L412 430 Q414 456 394 462
+             Q374 466 368 442 L360 350 Z"
+          fill="url(#shell)" stroke="#424F5C80" stroke-width="1.4"/>
+    <circle cx="122" cy="470" r="15" fill="#222A32" stroke="#4A5765" stroke-width="1.3"/>
+    <circle cx="398" cy="470" r="15" fill="#222A32" stroke="#4A5765" stroke-width="1.3"/>
+
+    <!-- Shoulder pauldrons -->
+    <path d="M160 250 Q136 256 130 286 L166 292 Z"
+          fill="url(#shellLit)" stroke="#54636F80" stroke-width="1.2"/>
+    <path d="M360 250 Q384 256 390 286 L354 292 Z"
+          fill="url(#shellLit)" stroke="#54636F80" stroke-width="1.2"/>
+  </g>
+
+  <!-- Wordmark etched on the chest, at plate scale. -->
+  <text x="260" y="346" text-anchor="middle"
+        font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+        font-size="15" font-weight="700" letter-spacing="3.4"
+        fill="#93A3B4" opacity="0.72">ROBONEX</text>
+</svg>

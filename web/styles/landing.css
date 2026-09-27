@@ -1,0 +1,411 @@
+/* ==========================================================================
+   landing.css  ROBONEX landing experience (STATE 1)
+   Imports the canonical palette. It does NOT fork or redefine any token.
+   Owns nothing outside the .landing page; the dashboard shell is untouched.
+   ========================================================================== */
+
+@import url("tokens.css");
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body.landing {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body.landing {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-0);
+  color: var(--ink-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- background: thin technical grid + vignette ------------------------- */
+
+.lp-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--line-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-subtle) 1px, transparent 1px),
+    linear-gradient(to right, var(--line-default) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-default) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+  opacity: 0.55;
+}
+
+.lp-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(closest-side at 50% 48%, rgba(79, 179, 166, 0.07), transparent 72%),
+    radial-gradient(farthest-corner at 50% 45%, transparent 38%, var(--surface-0) 96%);
+}
+
+/* --- header: ROBONEX left, SIH line right, SWARMOS under the SIH line --- */
+
+.lp-head {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6) 0;
+}
+
+.lp-wordmark {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.24em;
+  color: var(--ink-primary);
+}
+
+.lp-head__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.lp-sih {
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  color: var(--ink-tertiary);
+}
+
+.lp-sih__sep { color: var(--line-strong); margin: 0 2px; }
+
+.lp-product {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.30em;
+  color: var(--ink-secondary);
+}
+
+/* --- layout: hero left, robot centre, card right, blocks along the base -- */
+
+.lp-main {
+  position: relative;
+  z-index: 2;
+  height: calc(100% - 64px);
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.05fr) minmax(280px, 1fr);
+  grid-template-rows: 1fr auto auto;
+  grid-template-areas:
+    "hero   stage  card"
+    "about  stage  status"
+    "about  cta    status";
+  align-items: center;
+  column-gap: var(--space-6);
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+/* --- hero --------------------------------------------------------------- */
+
+.lp-hero { grid-area: hero; align-self: center; }
+
+.lp-hero__title {
+  margin: 0 0 var(--space-4);
+  font-size: clamp(44px, 6.2vw, 92px);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: 0.02em;
+  color: var(--ink-primary);
+}
+
+.lp-hero__lede {
+  margin: 0 0 var(--space-3);
+  max-width: 30ch;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--ink-secondary);
+}
+
+.lp-hero__sub {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-tertiary);
+}
+
+/* --- robot stage -------------------------------------------------------- */
+
+.lp-stage {
+  grid-area: stage;
+  align-self: stretch;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.lp-stage__robot {
+  width: auto;
+  height: min(76vh, 620px);
+  max-width: 100%;
+  display: block;
+  filter: drop-shadow(0 26px 44px rgba(0, 0, 0, 0.55));
+}
+
+/* --- SWARMOS capability card ------------------------------------------- */
+
+.lp-card {
+  grid-area: card;
+  align-self: center;
+  justify-self: end;
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-5);
+  background: var(--surface-1);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-lg);
+}
+
+.lp-card__title {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  color: var(--ink-primary);
+}
+
+.lp-card__kicker {
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line-subtle);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-tertiary);
+}
+
+.lp-card__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.lp-card__list li {
+  position: relative;
+  padding-left: var(--space-4);
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--ink-secondary);
+}
+
+.lp-card__list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--state-sovereign);
+  opacity: 0.85;
+}
+
+/* --- lower-left description ------------------------------------------- */
+
+.lp-about {
+  grid-area: about;
+  align-self: end;
+  padding-bottom: var(--space-2);
+}
+
+.lp-about__body {
+  margin: 0 0 var(--space-3);
+  max-width: 44ch;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-tertiary);
+}
+
+.lp-about__tags {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.20em;
+  color: var(--ink-secondary);
+}
+
+/* --- status rows (honest, never fabricated) ---------------------------- */
+
+.lp-status {
+  grid-area: status;
+  align-self: end;
+  justify-self: end;
+  display: grid;
+  gap: var(--space-2);
+  text-align: right;
+  padding-bottom: var(--space-2);
+}
+
+.lp-status__row {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+}
+
+.lp-status__label { color: var(--ink-tertiary); }
+.lp-status__sep   { color: var(--line-strong); }
+.lp-status__value { color: var(--ink-secondary); }
+
+.lp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ink-disabled);
+}
+
+.lp-dot[data-state="ok"]   { background: var(--state-sovereign); }
+.lp-dot[data-state="warn"] { background: var(--state-waiting); }
+.lp-dot[data-state="down"] { background: var(--state-blocked); }
+
+.lp-status__row[data-state="ok"] .lp-status__value { color: var(--ink-primary); }
+
+/* --- CTA ---------------------------------------------------------------- */
+
+.lp-cta {
+  grid-area: cta;
+  justify-self: center;
+  text-align: center;
+  padding-bottom: var(--space-4);
+}
+
+.lp-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 13px var(--space-6);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--ink-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.lp-cta__btn:hover {
+  background: var(--surface-3);
+  border-color: var(--state-sovereign);
+}
+
+.lp-cta__btn:active { transform: translateY(1px); }
+
+.lp-cta__btn:focus-visible {
+  outline: 2px solid var(--state-sovereign);
+  outline-offset: 3px;
+}
+
+.lp-cta__btn[disabled] {
+  cursor: progress;
+  color: var(--ink-tertiary);
+  border-color: var(--line-default);
+}
+
+.lp-cta__arrow {
+  display: inline-block;
+  transition: transform 160ms ease;
+}
+
+.lp-cta__btn:hover .lp-cta__arrow { transform: translateX(3px); }
+
+.lp-cta__note {
+  min-height: 15px;
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: var(--ink-tertiary);
+}
+
+.lp-cta__note[data-state="error"] { color: var(--state-blocked); }
+
+/* --- entry transition (restrained, 180 ms) ----------------------------- */
+
+.lp-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  background: var(--surface-0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+body.landing[data-state="entering"] .lp-transition {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* --- responsive: preserve ROBONEX > robot > message > status > CTA ------ */
+
+@media (max-width: 1180px) {
+  .lp-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "hero   stage"
+      "card   stage"
+      "about  status"
+      "cta    cta";
+    row-gap: var(--space-5);
+    height: auto;
+    min-height: calc(100% - 64px);
+    align-items: start;
+  }
+  .lp-card { justify-self: start; max-width: 100%; }
+  .lp-status { justify-self: start; text-align: left; }
+  .lp-status__row { justify-content: flex-start; }
+  .lp-stage__robot { height: min(56vh, 460px); }
+}
+
+@media (max-width: 820px) {
+  body.landing { overflow-y: auto; }
+  .lp-head { flex-direction: column; gap: var(--space-3); }
+  .lp-head__right { align-items: flex-start; }
+  .lp-sih { white-space: normal; }
+  .lp-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "hero"
+      "stage"
+      "card"
+      "about"
+      "status"
+      "cta";
+  }
+  .lp-cta { justify-self: stretch; }
+  .lp-cta__btn { width: 100%; justify-content: center; }
+  .lp-stage__robot { height: min(42vh, 340px); }
+}
+
+/* --- reduced motion ---------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-cta__btn,
+  .lp-cta__arrow,
+  .lp-transition { transition: none; }
+}

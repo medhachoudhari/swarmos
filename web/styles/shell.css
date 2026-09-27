@@ -1,0 +1,562 @@
+/* SWARMOS application shell: the frozen 68 / 22 / 10 geometry.
+ *
+ * The layout is decided ONCE here and never negotiated again. Panels do not
+ * size themselves; they fill the slot the grid gives them. This is why the map
+ * can never be squeezed by a chatty side panel, which is the single most
+ * common way an operations console degrades.
+ *
+ *   +--------------------------------------------------------------+
+ *   | topbar  48px fixed                                           |
+ *   +---------------------------------------+----------------------+
+ *   |                                       |                      |
+ *   |  LIVE MAP            68% width        |  RIGHT RAIL   22%    |
+ *   |  (canvas stack)                       |  (tabbed panels)     |
+ *   |                                       |                      |
+ *   +---------------------------------------+----------------------+
+ *   | TELEMETRY STRIP                  10% height                  |
+ *   +--------------------------------------------------------------+
+ *
+ * The remaining 10% of width is structural gutter and the rail's own padding,
+ * so 68 + 22 does not need to reach 100.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Column, so the in-flow banner and the shell share the viewport instead of
+   * overlapping. The shell still never scrolls; only panels do. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-0);
+  color: var(--ink-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Every number in the product is tabular so digits do not reflow at 10 Hz. */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---------------------------------------------------------------- shell ---- */
+
+.shell {
+  display: grid;
+  /* Containing block for the sub-1280px rail drawer, so the drawer is measured
+   * from the shell and not from the viewport. */
+  position: relative;
+  /* Take the height the banner left over, not the whole viewport. A flex item
+   * of a definite-height column has a definite height itself, so the 68/22/10
+   * percentages below still resolve and the strip is never clipped. */
+  flex: 1 1 0;
+  min-height: 0;
+  grid-template-rows: var(--shell-topbar-h) 1fr minmax(var(--bottom-min-h), var(--shell-bottom-pct));
+  grid-template-columns: minmax(0, var(--shell-map-pct)) minmax(var(--rail-min-w), var(--shell-rail-pct));
+  grid-template-areas:
+    "topbar topbar"
+    "map    rail"
+    "strip  strip";
+  gap: 0;
+}
+
+/* Below 1280px the rail would starve the map, so the rail becomes an overlay
+ * drawer instead of stealing width. The map is the hero at every size. */
+@media (max-width: 1280px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "topbar"
+      "map"
+      "strip";
+  }
+  /* The drawer handle only exists where the drawer does. */
+  .topbar .rail-toggle { display: inline-flex; }
+  .rail {
+    position: absolute;
+    top: var(--shell-topbar-h);
+    right: 0;
+    bottom: 0;
+    width: min(var(--rail-min-w), 92vw);
+    transform: translateX(100%);
+    transition: transform var(--dur-base) var(--ease-out);
+    box-shadow: var(--shadow-popover);
+    z-index: var(--z-rail);
+  }
+  .rail[data-open="true"] {
+    transform: translateX(0);
+  }
+}
+
+/* --------------------------------------------------------------- topbar ---- */
+
+.topbar {
+  grid-area: topbar;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--line-default);
+  z-index: var(--z-topbar);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  user-select: none;
+}
+
+.brand__mark {
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.06em;
+  color: var(--ink-primary);
+}
+
+.brand__sub {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+
+.topbar__spacer {
+  flex: 1 1 auto;
+}
+
+/* Connection / clock cluster: labels tertiary, values primary. Always. */
+.status-cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 68px;
+}
+
+.status-item__label {
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+
+.status-item__value {
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  color: var(--ink-primary);
+}
+
+/* The link indicator is the one place a dot carries meaning. */
+.link-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  margin-right: var(--space-2);
+  background: var(--ink-disabled);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+/* Idle is a legitimate, uninteresting state: connected, no run yet. It gets
+ * tertiary ink because saturated colour is reserved for real conditions. */
+.link-dot[data-link="idle"]    { background: var(--ink-tertiary); }
+.link-dot[data-link="live"]    { background: var(--state-available); }
+.link-dot[data-link="degraded"]{ background: var(--state-waiting); }
+.link-dot[data-link="down"]    { background: var(--state-blocked); }
+
+/* ------------------------------------------------------------------ map ---- */
+
+.map {
+  grid-area: map;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--map-floor);
+  overflow: hidden;
+}
+
+/* Layered canvases. Static geometry is painted once; only the robot layer
+ * repaints every frame. This is what buys 60 fps at 50 robots without a
+ * framework and without redrawing 400 rack rectangles 60 times a second. */
+.map__layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.map__layer--static  { z-index: 1; }  /* floor, grid, racks, aisle labels */
+.map__layer--paths   { z-index: 2; }  /* planned paths, reservations */
+.map__layer--robots  { z-index: 3; }  /* robots, headings, conflict rings */
+.map__layer--hit     { z-index: 4; background: transparent; cursor: crosshair; }
+
+/* Floating map controls -- overlay, never a panel that steals map width. */
+.map__overlay {
+  position: absolute;
+  z-index: var(--z-overlay);
+  pointer-events: none;
+}
+.map__overlay > * {
+  pointer-events: auto;
+}
+.map__overlay--tl { top: var(--space-3); left: var(--space-3); }
+.map__overlay--tr { top: var(--space-3); right: var(--space-3); }
+.map__overlay--bl { bottom: var(--space-3); left: var(--space-3); }
+
+/* ----------------------------------------------------------------- rail ---- */
+
+.rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--surface-1);
+  border-left: 1px solid var(--line-default);
+}
+
+.rail__tabs {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--line-default);
+}
+
+.rail__tab {
+  flex: 1 1 0;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-3) var(--space-2);
+  font-family: inherit;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+.rail__tab:hover { color: var(--ink-secondary); }
+.rail__tab[aria-selected="true"] {
+  color: var(--ink-primary);
+  border-bottom-color: var(--line-strong);
+}
+.rail__tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.rail__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.panel {
+  display: none;
+  padding: var(--space-4);
+}
+.panel[data-active="true"] {
+  display: block;
+}
+
+.panel__title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  font-weight: var(--weight-medium);
+}
+
+.panel__section + .panel__section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line-subtle);
+}
+
+/* ---------------------------------------------------------------- strip ---- */
+
+.strip {
+  grid-area: strip;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: 0 var(--space-4);
+  background: var(--surface-1);
+  border-top: 1px solid var(--line-default);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Exactly ONE hero metric. If a second number wants to be 40px, it is wrong. */
+.metric--hero .metric__value {
+  font-size: var(--text-hero);
+  letter-spacing: var(--tracking-hero);
+  line-height: var(--leading-tight);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.metric__label {
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+}
+
+.metric__value {
+  font-size: var(--text-metric);
+  font-weight: var(--weight-medium);
+  color: var(--ink-primary);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.metric__unit {
+  font-size: var(--text-label);
+  color: var(--ink-tertiary);
+  margin-left: 3px;
+}
+
+.metric__delta {
+  font-size: var(--text-micro);
+  color: var(--ink-secondary);
+}
+
+.strip__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: var(--space-3) 0;
+  background: var(--line-subtle);
+  flex: 0 0 auto;
+}
+
+.strip__spacer {
+  flex: 1 1 auto;
+}
+
+/* --------------------------------------------------------------- banner ---- */
+
+/* Degradation is reported INLINE, at the top of the shell, naming the cause and
+ * the consequence. It is not a red toast that disappears before it is read. */
+/* IN FLOW, deliberately. A fixed banner reserves no space, so at narrow
+ * widths it painted over the topbar and over the rail tab bar - it hid the
+ * control its own text told the operator to press. Being a normal block above
+ * .shell, it can only ever push content down, never cover it. */
+.banner {
+  position: relative;
+  display: none;
+  flex-wrap: wrap;            /* cause and action stack rather than collide */
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-body);
+  z-index: var(--z-banner);
+  border-bottom: 1px solid var(--line-default);
+}
+.banner[data-visible="true"] { display: flex; }
+.banner__cause,
+.banner__action { min-width: 0; }
+/* The spacer collapses when the row has wrapped, so the dismiss button stays
+ * reachable at every width instead of being pushed off the line. */
+.banner .strip__spacer { flex: 1 1 var(--space-4); }
+.banner[data-tone="warn"] {
+  background: var(--state-waiting-wash);
+  color: var(--ink-primary);
+  border-bottom-color: var(--state-waiting);
+}
+.banner[data-tone="error"] {
+  background: var(--state-blocked-wash);
+  color: var(--ink-primary);
+  border-bottom-color: var(--state-blocked);
+}
+.banner__cause { font-weight: var(--weight-medium); }
+.banner__action { color: var(--ink-secondary); }
+
+/* ---------------------------------------------------- shared primitives ---- */
+
+.btn {
+  appearance: none;
+  font-family: inherit;
+  font-size: var(--text-body);
+  color: var(--ink-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background var(--dur-instant) var(--ease-out),
+              color var(--dur-instant) var(--ease-out),
+              border-color var(--dur-instant) var(--ease-out);
+}
+.btn:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink-primary);
+  border-color: var(--line-strong);
+}
+.btn:active:not(:disabled) { background: var(--surface-4); }
+.btn:disabled { color: var(--ink-disabled); cursor: not-allowed; }
+.btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.btn--icon { padding: var(--space-2); line-height: 1; }
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+  background: var(--surface-2);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+
+/* State chip: the canonical way a status is named in text. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-micro);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-2);
+  border: 1px solid currentColor;
+}
+.chip[data-state="MOVING"]      { color: var(--state-moving); }
+.chip[data-state="BLOCKED"]     { color: var(--state-blocked); }
+.chip[data-state="WAITING"]     { color: var(--state-waiting); }
+.chip[data-state="CHARGING"]    { color: var(--state-charging); }
+.chip[data-state="AVAILABLE"]   { color: var(--state-available); }
+.chip[data-state="FAILED"]      { color: var(--state-failed); }
+.chip[data-state="QUARANTINED"] { color: var(--state-quarantined); }
+.chip[data-state="SOVEREIGN"]   { color: var(--state-sovereign); }
+
+/* Key/value rows -- the rail's workhorse. Label tertiary, value primary. */
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 3px 0;
+}
+.kv__k {
+  font-size: var(--text-label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+}
+.kv__v {
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+  text-align: right;
+}
+
+/* Empty state: names the CAUSE and the NEXT ACTION. Never just "No data". */
+.empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+.empty__cause {
+  font-size: var(--text-body);
+  color: var(--ink-secondary);
+  margin-bottom: var(--space-2);
+}
+.empty__action {
+  font-size: var(--text-label);
+  color: var(--ink-tertiary);
+}
+/* The empty state can PERFORM the action it names. */
+.empty__cta {
+  margin-top: var(--space-4);
+  display: flex;
+  justify-content: center;
+}
+.empty__hint {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+}
+
+/* The handle is available at every width. The rail is a real column above
+ * 1280px and an overlay drawer below it, but in both cases the operator must
+ * be able to put it away and get the whole floor back. */
+.rail-toggle { display: inline-flex; }
+
+/* Desktop: a closed rail gives its column width back to the map instead of
+ * merely hiding itself, so there is no dead gutter beside the warehouse. The
+ * sub-1280px drawer rules are left untouched; they key off .rail[data-open]. */
+@media (min-width: 1281px) {
+  .shell[data-rail="closed"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "topbar"
+      "map"
+      "strip";
+  }
+  .shell[data-rail="closed"] > .rail { display: none; }
+}
+
+/* Below 900px the telemetry strip cannot hold four metrics on one line, so it
+ * scrolls horizontally rather than silently truncating a number. A clipped
+ * digit is worse than a scrollbar. */
+@media (max-width: 900px) {
+  .shell {
+    grid-template-rows: var(--shell-topbar-h) 1fr minmax(var(--bottom-min-h), 14%);
+  }
+  .strip {
+    overflow-x: auto;
+    gap: var(--space-4);
+  }
+  .status-cluster { gap: var(--space-3); }
+  .brand__sub { display: none; }
+}
+
+/* Thin, unobtrusive scrollbars -- chrome should not compete with data. */
+.rail__body::-webkit-scrollbar { width: 8px; }
+.rail__body::-webkit-scrollbar-track { background: transparent; }
+.rail__body::-webkit-scrollbar-thumb {
+  background: var(--line-default);
+  border-radius: var(--radius-pill);
+}
+.rail__body::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

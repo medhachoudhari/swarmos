@@ -1,0 +1,585 @@
+/* Panel-level styles: map overlays, the four rail panels, charts and the
+ * command palette. shell.css owns geometry and shared primitives; this file
+ * owns the components that live inside those slots.
+ */
+
+/* ------------------------------------------------------- map overlays ---- */
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(15, 20, 25, 0.82);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(6px);
+}
+
+/* Each row is a <button> so the state can be muted from the keyboard. Without
+ * an explicit reset the user agent paints ButtonFace and a default border,
+ * which turned the whole legend into a light grey panel on the dark theme. */
+.legend__row {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-micro);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  cursor: pointer;
+  user-select: none;
+}
+.legend__row[data-muted="true"] { opacity: 0.38; }
+
+.legend__swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+/* AVAILABLE is outline-only on the map, so its swatch is outline-only too. */
+.legend__swatch[data-outline="true"] { background: transparent; border: 1.5px solid currentColor; }
+
+.legend__count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+
+.mapctl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mapinfo {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-3);
+  background: rgba(15, 20, 25, 0.82);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-micro);
+  color: var(--ink-secondary);
+  backdrop-filter: blur(6px);
+}
+.mapinfo__item { display: flex; align-items: center; gap: var(--space-2); }
+
+.map__placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  background: var(--map-floor);
+}
+.map__placeholder[data-hidden="true"] { display: none; }
+
+/* Hover tooltip on the map. Follows the cursor, never blocks it. */
+.map-tip {
+  position: absolute;
+  z-index: var(--z-popover);
+  display: none;
+  min-width: 150px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+  font-size: var(--text-micro);
+  pointer-events: none;
+}
+.map-tip[data-visible="true"] { display: block; }
+.map-tip__id {
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+  margin-bottom: 2px;
+}
+
+/* ------------------------------------------------------- fleet roster ---- */
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: var(--space-3);
+}
+
+.roster__row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-instant) var(--ease-out);
+}
+.roster__row:hover { background: var(--surface-2); }
+.roster__row[data-selected="true"] {
+  background: var(--surface-3);
+  border-left-color: var(--line-strong);
+}
+
+/* The one place a saturated colour appears in the roster: the state edge. */
+.roster__row[data-state="BLOCKED"]     { border-left-color: var(--state-blocked); }
+.roster__row[data-state="WAITING"]     { border-left-color: var(--state-waiting); }
+.roster__row[data-state="CHARGING"]    { border-left-color: var(--state-charging); }
+.roster__row[data-state="FAILED"]      { border-left-color: var(--state-failed); }
+.roster__row[data-state="QUARANTINED"] { border-left-color: var(--state-quarantined); }
+.roster__row[data-state="SOVEREIGN"]   { border-left-color: var(--state-sovereign); }
+
+.roster__id {
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+}
+.roster__meta {
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.roster__battery {
+  width: 34px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-4);
+  overflow: hidden;
+}
+.roster__battery-fill {
+  height: 100%;
+  background: var(--ink-tertiary);
+  transition: width var(--dur-base) var(--ease-out);
+}
+.roster__battery-fill[data-low="true"] { background: var(--state-waiting); }
+
+/* Small distribution bar: fleet composition by state, at a glance. */
+.statebar {
+  display: flex;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-2);
+  margin-top: var(--space-2);
+}
+.statebar__seg { height: 100%; transition: width var(--dur-base) var(--ease-out); }
+
+/* --------------------------------------------------- decision inspector -- */
+
+/* X-26: the audit trail for one robot's one tick. This is the panel that
+ * answers "why did it stop?" -- the question a judge will actually ask. */
+.verdict {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border-left: 3px solid var(--ink-tertiary);
+  margin-top: var(--space-3);
+}
+.verdict[data-kind="PROCEED"] { border-left-color: var(--state-available); }
+.verdict[data-kind="SLOW"]    { border-left-color: var(--state-moving); }
+.verdict[data-kind="YIELD"]   { border-left-color: var(--state-waiting); }
+.verdict[data-kind="WAIT"]    { border-left-color: var(--state-blocked); }
+.verdict[data-kind="REROUTE"] { border-left-color: var(--state-charging); }
+
+.verdict__kind {
+  font-size: var(--text-title);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  color: var(--ink-primary);
+}
+.verdict__reason {
+  font-size: var(--text-body);
+  color: var(--ink-secondary);
+  margin-top: 2px;
+}
+
+/* The Simplex chain: advisory proposal -> binding kernel -> final. Rendering
+ * all three side by side is the proof that ML never sits in the safety path. */
+.chain { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-3); }
+
+.chain__stage {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.chain__role {
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.chain__detail { font-size: var(--text-body); color: var(--ink-primary); }
+.chain__note { font-size: var(--text-micro); color: var(--ink-tertiary); display: block; }
+
+/* When the kernel overrides the advisory layer, say so explicitly. */
+.chain__stage[data-overridden="true"] {
+  background: var(--state-blocked-wash);
+  border: 1px solid var(--state-blocked);
+}
+
+/* ---------------------------------------------------- simulation lab ---- */
+
+.field { margin-top: var(--space-3); }
+
+.field__label {
+  display: block;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.field__control,
+.palette__input {
+  width: 100%;
+  appearance: none;
+  font-family: inherit;
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  transition: border-color var(--dur-instant) var(--ease-out);
+}
+.field__control:focus,
+.palette__input:focus {
+  outline: none;
+  border-color: var(--line-strong);
+  box-shadow: var(--focus-ring);
+}
+select.field__control { cursor: pointer; }
+
+.field__hint { font-size: var(--text-micro); color: var(--ink-tertiary); margin-top: 3px; }
+
+.btn-row { display: flex; gap: var(--space-2); margin-top: var(--space-4); }
+.btn-row .btn { flex: 1 1 0; }
+
+.btn--primary {
+  background: var(--surface-4);
+  color: var(--ink-primary);
+  border-color: var(--line-strong);
+}
+.btn--primary:hover:not(:disabled) { background: #2A3642; }
+
+/* Determinism receipt (N3): the trace hash, shown verbatim. Two identical
+ * hashes from two runs of the same seed is the whole claim, so it is never
+ * truncated below the point where a judge could verify it by eye. */
+.hashline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-2);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-secondary);
+  word-break: break-all;
+}
+.hashline[data-match="true"]  { border-left: 2px solid var(--state-available); }
+.hashline[data-match="false"] { border-left: 2px solid var(--state-blocked); }
+
+/* ------------------------------------------------------------ charts ---- */
+
+/* Exactly four charts. Each is a canvas; none is a library. */
+.chart { margin-top: var(--space-4); }
+
+.chart__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-2);
+}
+.chart__title {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.chart__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+}
+.chart__canvas {
+  display: block;
+  width: 100%;
+  height: 96px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.chart__legend {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+}
+/* A legend entry is the wrapper; the swatch is the <i> inside it. These were
+ * the same selector, which forced the text wrapper to 8x2 px and spilled the
+ * "100 ms tick budget" label across the chart underneath. */
+.chart__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.chart__key > i {
+  display: inline-block;
+  width: 8px;
+  height: 2px;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
+/* Legend entries wrap instead of overflowing when a label is long. */
+.chart__legend { flex-wrap: wrap; row-gap: 2px; }
+
+/* The palette row badge. Inline, hugs its text, no border-top. */
+.palette__key {
+  grid-area: key;
+  align-self: center;
+  justify-self: end;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+  background: var(--surface-2);
+  border: 1px solid var(--line-default);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------- robot artwork (landing only) ---
+ * Hand-authored inline SVG: this build has no network access, so no raster
+ * asset can be fetched, and vector art stays crisp on any projector. It lives
+ * only inside #map-placeholder, which is removed as soon as the first state
+ * frame lands, so it cannot overlap live robots or telemetry. Decoration never
+ * takes pointer events and never sits above the canvases. */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6, 32px);
+  pointer-events: none;
+}
+.hero__art {
+  flex: 0 0 auto;
+  width: 300px;
+  max-width: 34vw;
+  height: auto;
+  color: var(--ink-tertiary);
+  pointer-events: none;
+}
+.hero__copy { position: relative; z-index: 1; text-align: left; }
+.hero__copy > * { pointer-events: auto; }
+
+/* One slow sweep of the sensing arc, on the landing screen only. */
+.hero__sweep {
+  transform-origin: 96px 96px;
+  animation: hero-sweep 3.2s linear infinite;
+}
+@keyframes hero-sweep { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .hero__sweep { animation: none; }
+}
+@media (max-width: 1100px) {
+  .hero__art { display: none; }
+}
+
+/* Brand glyph beside the SWARMOS wordmark, so the robotics read survives
+ * after the landing hero is gone. */
+.brand__glyph {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-right: 8px;
+  color: var(--ink-secondary);
+  pointer-events: none;
+}
+
+/* -------------------------------------------------- command palette ---- */
+
+.palette-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-palette);
+  display: none;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 14vh;
+  background: rgba(5, 8, 11, 0.62);
+}
+.palette-scrim[data-open="true"] { display: flex; }
+
+.palette {
+  width: min(560px, 92vw);
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-palette);
+  overflow: hidden;
+  animation: palette-in var(--dur-slow) var(--ease-out);
+}
+
+@keyframes palette-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.palette__input {
+  border: 0;
+  border-bottom: 1px solid var(--line-default);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--text-title);
+  padding: var(--space-4);
+}
+.palette__input:focus { box-shadow: none; border-color: var(--line-strong); }
+
+.palette__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1);
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+/* Three children, two columns. The name and the description stack in column
+ * one and the shortcut badge sits in column two spanning both rows. Declaring
+ * the areas explicitly is what stops the badge from wrapping onto an implicit
+ * third row, where a 1fr column made it look like a full-width bar. */
+.palette__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "name key"
+    "desc key";
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: 1px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.palette__item[aria-selected="true"] { background: var(--surface-4); }
+.palette__name {
+  grid-area: name;
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+}
+.palette__desc {
+  grid-area: desc;
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+}
+
+/* The footer hint bar. Distinct from .palette__key, which is the small
+ * shortcut badge inside a row: one class cannot be both a full-width bar with
+ * a top border and an inline badge, and when it tried, every badge in the
+ * palette rendered as a full-width box. */
+.palette__hint {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--line-default);
+  font-size: var(--text-micro);
+  color: var(--ink-tertiary);
+}
+
+/* --------------------------------------------------- X-12 compare panel --- */
+
+/* The delta strip. Four columns: metric, treatment, baseline, delta. A fixed
+ * grid rather than a table so the numbers line up on their digits even as rows
+ * are replaced at 10 Hz. */
+.delta {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--line-subtle);
+}
+.delta__head,
+.delta__row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 0.9fr 1.1fr;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.delta__head {
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+.delta__row {
+  border-left: 2px solid transparent;
+  padding-left: var(--space-2);
+  transition: border-color var(--dur-base) var(--ease-out);
+}
+.delta__metric {
+  font-size: var(--text-body);
+  color: var(--ink-secondary);
+}
+.delta__val {
+  font-size: var(--text-body);
+  color: var(--ink-primary);
+  text-align: right;
+}
+/* The baseline column is context, not the subject, so it sits one ink level
+ * back. The eye should land on the treatment column first. */
+.delta__val--base { color: var(--ink-secondary); }
+.delta__delta { color: var(--ink-secondary); }
+
+/* Saturated colour marks the winning arm and nothing else. A tie is ink:
+ * colouring a tie green would be a claim the data does not support. */
+.delta__row[data-won="swarmos"] { border-left-color: var(--state-available); }
+.delta__row[data-won="swarmos"] .delta__delta { color: var(--ink-primary); }
+.delta__row[data-won="baseline"] { border-left-color: var(--state-waiting); }
+.delta__row[data-won="baseline"] .delta__delta { color: var(--state-waiting); }
+.delta__row[data-won="tie"] .delta__delta { color: var(--ink-tertiary); }
+
+.cosim-status { margin-top: var(--space-4); }
+
+/* An inline note, never a toast. A problem with the comparison belongs next to
+ * the comparison. */
+.cosim-note {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body);
+  color: var(--ink-secondary);
+  background: var(--surface-2);
+}
+.cosim-note[data-tone="bad"] {
+  border-left-color: var(--state-blocked);
+  background: var(--state-blocked-wash);
+  color: var(--ink-primary);
+}
+
+/* Four fault buttons do not fit on one line in a 320 px rail. */
+.btn-row--wrap { flex-wrap: wrap; }
+.btn-row--wrap .btn { flex: 1 1 45%; }

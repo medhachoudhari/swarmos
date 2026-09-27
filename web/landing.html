@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ROBONEX &middot; SWARMOS</title>
+<!-- Inline data-URI icon. Without a rel=icon the browser probes /favicon.ico
+     and logs a 404 on every load, which buries real errors in the console. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2312161C'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%234FB3A6' stroke-width='3'/%3E%3C/svg%3E" />
+
+<link rel="stylesheet" href="styles/landing.css" />
+</head>
+<body class="landing" data-state="landing">
+
+  <div class="lp-grid" aria-hidden="true"></div>
+  <div class="lp-vignette" aria-hidden="true"></div>
+
+  <header class="lp-head">
+    <div class="lp-head__left">
+      <span class="lp-wordmark">ROBONEX</span>
+    </div>
+    <div class="lp-head__right">
+      <span class="lp-sih">SIH <span class="lp-sih__sep">/</span> SMART INDIA HACKATHON</span>
+      <span class="lp-product">SWARMOS</span>
+    </div>
+  </header>
+
+  <main class="lp-main">
+
+    <section class="lp-hero" aria-labelledby="lp-title">
+      <h1 class="lp-hero__title" id="lp-title">ROBONEX</h1>
+      <p class="lp-hero__lede">Distributed intelligence for autonomous warehouse fleets.</p>
+      <p class="lp-hero__sub">Every robot decides locally. The fleet stays coordinated.</p>
+    </section>
+
+    <figure class="lp-stage">
+      <img class="lp-stage__robot" src="assets/robot-hero.svg"
+           alt="Autonomous mobile robot, front three-quarter view" width="520" height="640" />
+    </figure>
+
+    <aside class="lp-card" aria-labelledby="lp-card-title">
+      <h2 class="lp-card__title" id="lp-card-title">SWARMOS</h2>
+      <p class="lp-card__kicker">DECENTRALIZED MULTI-AMR COORDINATION</p>
+      <ul class="lp-card__list">
+        <li>Decentralized coordination</li>
+        <li>Real-time conflict resolution</li>
+        <li>Dynamic task allocation</li>
+        <li>Spatio-temporal coordination</li>
+        <li>Failure recovery</li>
+        <li>Edge intelligence</li>
+      </ul>
+    </aside>
+
+    <section class="lp-about">
+      <p class="lp-about__body">SWARMOS coordinates autonomous warehouse fleets through distributed
+        communication, conflict resolution, dynamic task execution and resilient multi-robot
+        coordination.</p>
+      <p class="lp-about__tags">AUTONOMOUS &middot; DISTRIBUTED &middot; RESILIENT &middot; MULTI-AMR</p>
+    </section>
+
+    <section class="lp-status" aria-label="System status">
+      <p class="lp-status__row" id="lp-status-fleet">
+        <span class="lp-dot" data-state="unknown" aria-hidden="true"></span>
+        <span class="lp-status__label">FLEET STATUS</span>
+        <span class="lp-status__sep">&middot;</span>
+        <span class="lp-status__value" id="lp-status-fleet-value">--</span>
+      </p>
+      <p class="lp-status__row" id="lp-status-net">
+        <span class="lp-dot" data-state="unknown" aria-hidden="true"></span>
+        <span class="lp-status__label">AMR NETWORK</span>
+        <span class="lp-status__sep">&middot;</span>
+        <span class="lp-status__value" id="lp-status-net-value">--</span>
+      </p>
+    </section>
+
+    <div class="lp-cta">
+      <button class="lp-cta__btn" id="lp-enter" type="button">
+        <span class="lp-cta__text">ENTER SWARMOS</span>
+        <span class="lp-cta__arrow" aria-hidden="true">&rarr;</span>
+      </button>
+      <p class="lp-cta__note" id="lp-cta-note" role="status" aria-live="polite"></p>
+    </div>
+
+  </main>
+
+  <div class="lp-transition" id="lp-transition" aria-hidden="true"></div>
+
+  <!-- Plain classic script, not type="module". landing.js has no imports and
+       never needed module scoping, but Chrome (and other browsers) refuse to
+       execute a module script AT ALL under file://, even one with zero
+       imports of its own - the CORS-like same-origin check for modules
+       applies before the file is even parsed. That silently skipped every
+       line in this file when the page was opened straight off disk, which is
+       why ENTER SWARMOS looked dead: no listener was ever attached. -->
+  <script src="js/landing.js"></script>
+
+</body>
+</html>

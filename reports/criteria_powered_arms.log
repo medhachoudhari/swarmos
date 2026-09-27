@@ -1,0 +1,59 @@
+==========================================================================
+SIH26123 C2 - powered re-measurement
+ticks=9000 (900 s sim)  seeds=[11, 13, 17, 19, 23, 29, 31, 37, 41]  scenarios=['blocked_aisle', 'narrow_aisle_deadlock', 'rush_50']
+==========================================================================
+
+-- blocked_aisle (fleet 40)
+   seed      base(s)   swarm(s)   b_done   s_done     reduct
+   11          85.19     106.64       16       10     -25.2%
+   13          74.54      92.71       14        8     -24.4%
+   17          90.27      81.73       14       12       9.5%
+   19          80.04     105.66       13       10     -32.0%
+   23          89.86      80.36       14       11      10.6%
+   29          78.83     116.53       11        8     -47.8%
+   31          95.89      91.08       15        8       5.0%
+   37          73.98      91.93        5        6     -24.3%
+   41          92.23     111.91       16       10     -21.3%
+
+-- narrow_aisle_deadlock (fleet 24)
+   seed      base(s)   swarm(s)   b_done   s_done     reduct
+   11         112.74      83.57       12        3      25.9%
+   13          78.42      33.00        8        1      57.9%
+   17          53.45      79.00        2        1     -47.8%
+   19         122.94     145.46       10        5     -18.3%
+   23          91.35      83.65        8        2       8.4%
+   29          72.85      77.20        2        2      -6.0%
+   31         107.90      80.08        8        6      25.8%
+   37          90.91      77.00        9        3      15.3%
+   41         117.00     248.80        2        2    -112.6%
+
+-- rush_50 (fleet 50)
+   seed      base(s)   swarm(s)   b_done   s_done     reduct
+   11         107.78      96.40       10       10      10.6%
+   13          95.97      96.80       15        4      -0.9%
+   17          73.56     122.25       16       13     -66.2%
+   19          78.30     109.20       14       12     -39.5%
+   23         120.35     125.82       13       13      -4.5%
+   29         116.42      99.65       13        8      14.4%
+   31         108.50     120.82       13       10     -11.4%
+   37          97.80     114.69       15       11     -17.3%
+   41          92.27      88.41       12       11       4.2%
+
+==========================================================================
+C1 zero collisions in the SwarmOS arm: 7  FAIL
+   baseline arm collisions (control, expected > 0): 0
+   SwarmOS collision run: blocked_aisle seed=29 swarmos=1
+   SwarmOS collision run: rush_50 seed=19 swarmos=1
+   SwarmOS collision run: rush_50 seed=29 swarmos=2
+   SwarmOS collision run: rush_50 seed=31 swarmos=2
+   SwarmOS collision run: rush_50 seed=41 swarmos=1
+--------------------------------------------------------------------------
+C2 paired reduction in avg_completion_s, n=27 paired runs
+  mean            : -11.6 pct
+  std dev         : 33.6 pct
+  95 pct CI       : [-24.8, +1.7] pct
+  target          : >= 20 pct
+  tasks completed : min=1  median=10  max=16  (per arm per run)
+  verdict         : NOT MET - the whole interval sits below the bar
+  elapsed         : 2183.0 s
+==========================================================================

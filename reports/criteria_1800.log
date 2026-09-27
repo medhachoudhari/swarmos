@@ -1,0 +1,49 @@
+SIH26123 success-criteria verification
+ticks=1800 (180 s sim time)  seeds=(11, 13, 17)
+C1 zero collisions   C2 >= 20 pct completion-time reduction
+
+--- blocked_aisle  (fleet 40) ---------------------------
+ seed       arm  coll  near  done  avg_compl_s  tasks/min  p95_ms
+   11  baseline     0 18197    16        85.19       5.33    2.48
+   11   swarmos     0 29028     8        87.03       2.67    6.48
+   13  baseline     0 22729    14        74.54       4.67    2.54
+   13   swarmos     0 34586     7        81.56       2.33    6.55
+   17  baseline     0 22456    14        90.27       4.67    2.49
+   17   swarmos     0 18673    12        81.73       4.00    5.59
+
+--- narrow_aisle_deadlock  (fleet 24) -------------------
+ seed       arm  coll  near  done  avg_compl_s  tasks/min  p95_ms
+   11  baseline     0  7231    10        96.49       3.33    1.31
+   11   swarmos     0 15396     3        83.57       1.00    4.04
+   13  baseline     0  6677     8        78.42       2.67    1.30
+   13   swarmos     0 16118     1        33.00       0.33    2.81
+   17  baseline     0 13262     2        53.45       0.67    1.70
+   17   swarmos     0 17500     1        79.00       0.33    3.00
+
+--- rush_50  (fleet 50) ---------------------------------
+ seed       arm  coll  near  done  avg_compl_s  tasks/min  p95_ms
+   11  baseline     0 40334     9        91.67       3.00    3.27
+   11   swarmos     0 38978     8        80.14       2.67    9.74
+   13  baseline     0 33481    15        95.97       5.00    3.32
+   13   swarmos     0 48688     3        74.23       1.00   10.14
+   17  baseline     0 25447    16        73.56       5.33    3.00
+   17   swarmos     0 34393    11        99.97       3.67    8.67
+
+========================================================================
+C1 zero collisions: total collisions across every arm, seed and scenario = 0
+    PASS
+
+C2 completion-time reduction (baseline -> swarmos, avg_completion_s):
+                scenario  seed  baseline   swarmos  reduction
+           blocked_aisle    11     85.19     87.03      -2.2%
+           blocked_aisle    13     74.54     81.56      -9.4%
+           blocked_aisle    17     90.27     81.73       9.5%
+   narrow_aisle_deadlock    11     96.49     83.57      13.4%
+   narrow_aisle_deadlock    13     78.42     33.00      57.9%
+   narrow_aisle_deadlock    17     53.45     79.00     -47.8%
+                 rush_50    11     91.67     80.14      12.6%
+                 rush_50    13     95.97     74.23      22.7%
+                 rush_50    17     73.56     99.97     -35.9%
+
+    mean reduction over 9 paired runs: +2.3 pct
+    DOES NOT MEET the 20 pct bar
