@@ -70,6 +70,35 @@ function loadColors() {
   STATE_COLOR.SOVEREIGN = css("--state-sovereign");
 }
 
+// X-01. The sovereign envelope has to read at a glance on a projector or in a
+// recorded video: a solid 2 px ring at near-full opacity, a dashed outer halo,
+// and a label. The earlier 1 px ring at 28 % opacity was drawn correctly but
+// was effectively invisible at demo resolution. Presentation only.
+function drawSovereignEnvelope(ctx, sx, sy, radiusPx, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.9;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(sx, sy, radiusPx, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.arc(sx, sy, radiusPx + 5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (radiusPx >= 10) {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = color;
+    ctx.font = `600 10px ${css("--font-mono") || "monospace"}`;
+    ctx.textAlign = "center";
+    ctx.fillText("SOVEREIGN", sx, sy - radiusPx - 9);
+  }
+  ctx.restore();
+}
+
 export class MapView {
   constructor(root) {
     this.root = root;
@@ -590,6 +619,9 @@ export class MapView {
         ctx.beginPath();
         ctx.arc(sx, sy, 2, 0, Math.PI * 2);
         ctx.fill();
+        if (r.status === "SOVEREIGN") {
+          drawSovereignEnvelope(ctx, sx, sy, Math.max(6, SOVEREIGN_ENVELOPE_M * s), color);
+        }
         continue;
       }
 
@@ -599,13 +631,14 @@ export class MapView {
       // SOVEREIGN draws the WIDER envelope it is actually held to, because the
       // whole claim of the mode is 'less information, so more clearance'. A
       // ring that matched the normal footprint would hide the claim.
-      if (r.status === "BLOCKED" || r.status === "WAITING" || r.status === "SOVEREIGN") {
-        const ringM = r.status === "SOVEREIGN" ? SOVEREIGN_ENVELOPE_M : FOOTPRINT_M / 2;
+      if (r.status === "SOVEREIGN") {
+        drawSovereignEnvelope(ctx, sx, sy, SOVEREIGN_ENVELOPE_M * s, color);
+      } else if (r.status === "BLOCKED" || r.status === "WAITING") {
         ctx.strokeStyle = color;
         ctx.globalAlpha = 0.28;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(sx, sy, ringM * s, 0, Math.PI * 2);
+        ctx.arc(sx, sy, (FOOTPRINT_M / 2) * s, 0, Math.PI * 2);
         ctx.stroke();
         ctx.globalAlpha = 1;
       }

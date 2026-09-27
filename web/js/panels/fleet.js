@@ -98,11 +98,14 @@ export class FleetPanel {
     roster.innerHTML = rows.map((r) => {
       const v = store.verdict(r.robot_id);
       const low = (r.battery ?? 100) < 25;
+      // A sovereign or quarantined robot is named as such first; its verdict
+      // alone ("SLOW") would hide the mode the operator most needs to see.
+      const mode = (r.status === "SOVEREIGN" || r.status === "QUARANTINED") && v ? `${r.status} &middot; ` : "";
       return `<div class="roster__row" role="option" data-id="${r.robot_id}"
                    data-state="${r.status}" aria-selected="${r.robot_id === store.selectedRobot}"
                    data-selected="${r.robot_id === store.selectedRobot}">
         <span class="roster__id">${r.robot_id}</span>
-        <span class="roster__meta">${v ? v.kind : r.status} &middot; ${metres(r.velocity, 2)} m/s${r.current_task_id ? ` &middot; ${r.current_task_id}` : ""}</span>
+        <span class="roster__meta">${mode}${v ? v.kind : r.status} &middot; ${metres(r.velocity, 2)} m/s${r.current_task_id ? ` &middot; ${r.current_task_id}` : ""}</span>
         <span class="roster__battery" title="Battery ${pct(r.battery)}%">
           <span class="roster__battery-fill" data-low="${low}" style="width:${Math.max(0, Math.min(100, r.battery ?? 0))}%"></span>
         </span>
